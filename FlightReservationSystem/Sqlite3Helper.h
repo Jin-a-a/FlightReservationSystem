@@ -14,12 +14,12 @@ typedef struct SqlParameter {
 } SqlParameter;
 
 typedef struct SqlValueParamArray {
-	int length;
+	unsigned int length;
 	SqlValueParameter* arr;
 } SqlValueParamArray;
 
 typedef struct SqlParamArray {
-	int length;
+	unsigned int length;
 	SqlParameter* arr;
 } SqlParamArray;
 
@@ -30,8 +30,13 @@ SqlValueParameter* combine_format_set(const SqlValueParameter a[], unsigned int 
 char* combine_param_types(const SqlParameter parameters[], int param_count);
 char* combine_param_values(const SqlValueParameter parameters[], unsigned int param_count);
 char* combine_param_names(const SqlValueParameter parameters[], unsigned int param_count);
+char* combine_param_names_v2(const SqlParameter parameters[], unsigned int param_count);
 char* combine_param_explicit_values(const SqlValueParameter parameters[], unsigned int param_count);
 char* combine_param_comparisons_and(const SqlValueParameter parameters[], unsigned int param_count, char* comparer);
+
+int sqlite3_check_if_value_exists(sqlite3* data_base, const char* table_name, const SqlValueParameter parameters[], unsigned int param_count, char** err_msg, bool* result);
+int sqlite3_set_value_where(sqlite3* data_base, const char* table_name, const SqlValueParameter select_value[], unsigned int selections, const SqlValueParameter values[], unsigned int set_val_len, char** err_msg);
+int sqlite3_row_count(sqlite3* data_base, const char* table_name, int* result, char** err_msg);
 
 int sqlite3_table_if_not_exists(sqlite3* data_base, const char* table_name, const SqlParameter parameters[], unsigned int param_count, char** err_msg);
 int sqlite3_insert_value(sqlite3* data_base, const char* table_name, const SqlValueParameter parameters[], unsigned int param_count, char** err_msg);

@@ -46,7 +46,9 @@ static SqlValueParameter format_parameter(SqlParameter param, __int64 value) {
 
 SqlValueParameter* format_set(const SqlParameter parameters[], const int param_count, ...) {
 	SqlValueParameter* set = malloc(sizeof(SqlValueParameter) * param_count);
-	if (set == NULL) {
+	__int64* data_arr = malloc(sizeof(__int64) * param_count);
+	if (set == NULL || data_arr == NULL) {
+		printf("Malloc failed.");
 		exit(-1);
 	}
 
@@ -54,13 +56,16 @@ SqlValueParameter* format_set(const SqlParameter parameters[], const int param_c
 
 	va_start(ap, param_count);
 	for (int i = 0; i < param_count; i++) {
-		SqlParameter param = parameters[i];
-		__int64 data = va_arg(ap, __int64);
+		data_arr[i] = va_arg(ap, __int64);
+	}
+	va_end(ap);
 
-		set[i] = format_parameter(param, data);
+	for (int i = 0; i < param_count; i++) {
+		SqlParameter param = parameters[i];
+		set[i] = format_parameter(param, data_arr[i]);
 	}
 	
-	va_end(ap);
+	free(data_arr);
 	return set;
 }
 
@@ -167,9 +172,30 @@ char* combine_param_names(const SqlValueParameter parameters[], unsigned int par
 	return destination;
 }
 
+char* combine_param_names_v2(const SqlParameter parameters[], unsigned int param_count) {
+	unsigned int capacity = def_buffer;
+	char* destination = malloc(sizeof(char) * def_buffer);
+	if (destination == NULL) {
+		printf("Null Reference Error");
+		exit(-1);
+	}
+	destination[0] = '\0';
+
+	for (int i = 0; i < param_count; i++) {
+		const char* curr_name = parameters[i].name;
+
+		dynamic_concat(&destination, curr_name, &capacity);
+		if (i < param_count - 1) {
+			dynamic_concat(&destination, ", ", &capacity);
+		}
+	}
+
+	return destination;
+}
+
 char* combine_param_explicit_values(const SqlValueParameter parameters[], unsigned int param_count) {
 	const char* form_literal = "%s = %s";
-	const char* form_str = "%s '%s'";
+	const char* form_str = "%s = '%s'";
 
 	unsigned int capacity = def_buffer;
 	char* destination = malloc(sizeof(char) * def_buffer);
@@ -361,4 +387,27 @@ void free_value_set(SqlValueParameter parameters[], int param_count, bool free_v
 	}
 
 	free(parameters);
+}
+
+//Not used.
+void int_to_alpha_number(int value, char* buffer, size_t size) {
+	int alpha_amount = 'Z' - 'A' + 1;
+	int current = value;
+	int index = 0;
+	while (current != 0) {
+		int division_result = current / alpha_amount;
+		int quotient = current - division_result;
+		current = division_result;
+
+		buffer[index] = quotient + 'A';
+		index++;
+
+		while (index >= size - 1) {
+			for (int j = 0; j < size - 2; j++) {
+				buffer[j] = buffer[j + 1];
+			}
+		}
+	}
+
+	buffer[index] = '\0';
 }

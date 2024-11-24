@@ -3,7 +3,9 @@
 #include <stdbool.h>
 #include <malloc.h>
 #include <string.h>
+#include <stdbool.h>
 #include "Sqlite3Helper.h"
+#include "StringHelper.h"
 #include "D:\TechnicalProjects\C Libs\SQLite\sqlite3\sqlite3.h"
 #include "D:\TechnicalProjects\C Libs\LibFort\fort.h";
 
@@ -102,6 +104,7 @@ int main()
 void display_options(sqlite3* data_base) {
 	while (true) {
 		printf("Choose a command.\n");
+		printf("0. Exit Program\n");
 		printf("1. Add Flight Schedule \n");
 		printf("2. Remove Flight Schedule \n");
 		printf("3. Delay Flight Schedule \n");
@@ -117,10 +120,13 @@ void display_options(sqlite3* data_base) {
 
 		if (res == 0) {
 			empty_stdin();
-			return;
+			printf("Invalid input.\n\n");
+			continue;
 		}
 
 		switch (option) {
+		case 0:
+			return;
 		case 1:
 			add_flight_sched(data_base);
 			break;
@@ -142,8 +148,12 @@ void display_options(sqlite3* data_base) {
 		case 7:
 			view_flight_schedule(data_base);
 			break;
+		case 8:
+			view_flight_seats(data_base);
+			break;
 		default:
-			return;
+			printf("Invalid input.\n");
+			break;
 		}
 
 		printf("\n");
@@ -446,18 +456,21 @@ void update_flight_seat(sqlite3* data_base) {
 		exit_on_err(result, err_code);
 
 		SqlParameter* seat_data = &seats_table_params[seats_table_identifiable_seat_param_count];
-		int data_length = seats_table_identifiable_seat_param_count;
+		int data_length = seats_table_param_count - seats_table_identifiable_seat_param_count;
 		SqlValueParameter* item_to_set = format_set(seat_data, data_length, given_name, middle_name, family_name, country_name, passport_number);
 
 		if (has_row) {
 			result = sqlite3_set_value_where(
 				data_base,
 				seats_table,
-				identifiable_seat, seats_table_identifiable_seat_param_count,
+				identifiable_seat, seats_table_identifiable_seat_param_count - 0,
 				item_to_set,
 				data_length,
-				err_code);
+				&err_code);
 			exit_on_err(result, err_code);
+
+			free_value_set(identifiable_seat, seats_table_identifiable_seat_param_count, true);
+			free_value_set(item_to_set, data_length, true);
 		}
 		else {
 			SqlValueParameter* seat_values = combine_format_set(identifiable_seat, seats_table_identifiable_seat_param_count, item_to_set, data_length);
@@ -467,8 +480,8 @@ void update_flight_seat(sqlite3* data_base) {
 			free_value_set(seat_values, seats_table_param_count, true);
 		}
 
-		free_value_set(item_to_set, data_length, true);
-		free_value_set(identifiable_seat, seats_table_identifiable_seat_param_count, true);
+		printf("   :\n");
+		printf("   : Successfully updated the seat.\n");
 	}
 
 	free_value_set(set, flight_table_identifiable_param_count, true);
@@ -479,6 +492,8 @@ void view_flight_schedule(sqlite3* data_base) {
 	char stuff[80];
 	int buffer_size = sizeof(char) * 80;
 	int half_buffer_size = buffer_size / 2;
+
+	printf("Viewing Flight Schedules\n");
 
 	sprintf_s(stuff, buffer_size, "SELECT * FROM %s", flight_table);
 
@@ -541,13 +556,87 @@ void view_flight_seats(sqlite3* data_base) {
 	unsigned int day, month, year, hour, minute;
 	char source_ap[5];
 	char destination_ap[5];
+	char* err_code;
+	int result;
+	bool has_row;
+
+	printf("Viewing Flight Seats\n");
 
 	get_flight_sched(&day, &month, &year, &hour, &minute, source_ap, destination_ap);
-	long long time_stamp = get_timestamp(day, month, year, hour, minute);
 
-	sqlite3_stmt* statement;
-	char stuff[80];
-	int buffer_size = sizeof(char) * 80;
+	SqlValueParameter* flight_params = format_set(flight_table_params, flight_table_identifiable_param_count, 
+		day, month, year, hour, minute, source_ap, destination_ap);
+
+	result = sqlite3_check_if_value_exists(data_base, flight_table, flight_params, flight_table_identifiable_param_count, &err_code, &has_row);
+	exit_on_err(result, err_code);
+
+	if (!has_row) {
+		printf("   : This flight record does not exist. (%u/%u/%u, %u:%u  %s ~> %s)\n", day, month, year, hour, minute, source_ap, destination_ap);
+	}
+	else {
+		long long time_stamp = get_timestamp(day, month, year, hour, minute);
+
+		sqlite3_stmt* statement;
+		//SELECT columns FROM table_name WHERE conditions ORDER BY columns
+		char* sql_exec_base = "SELECT %s FROM %s WHERE %s ORDER BY %s";
+
+		SqlParameter* selected_columns = &seats_table_params[seats_table_identifiable_flight_param_count];
+		unsigned int selected_columns_length = seats_table_param_count - seats_table_identifiable_flight_param_count;
+		char* selected_columns_str = combine_param_names_v2(selected_columns, selected_columns_length);
+
+		SqlParameter* flight_sched_columns = seats_table_params;
+		unsigned int flight_sched_columns_length = seats_table_identifiable_flight_param_count;
+		SqlValueParameter* flight_sched_values = format_set(flight_sched_columns, flight_sched_columns_length, time_stamp, source_ap, destination_ap);
+		char* flight_sched_condition_str = combine_param_comparisons_and(flight_sched_values, flight_sched_columns_length, "=");
+		free_value_set(flight_sched_values, flight_sched_columns_length, true);
+
+		SqlParameter* seat_pos_columns = &seats_table_params[seats_table_identifiable_flight_param_count];
+		unsigned int seat_pos_columns_length = seats_table_identifiable_seat_param_count - seats_table_identifiable_flight_param_count;
+		char* seat_pos_str = combine_param_names_v2(seat_pos_columns, seat_pos_columns_length);
+
+		char* sql_exec = dynamic_format(sql_exec_base, selected_columns_str, seats_table, flight_sched_condition_str, seat_pos_str);
+
+		result = sqlite3_prepare_v2(data_base, sql_exec, -1, &statement, &err_code);
+		exit_on_err(result, err_code);
+
+		free(selected_columns_str);
+		free(flight_sched_condition_str);
+		free(seat_pos_str);
+		free(sql_exec);
+
+		ft_table_t* table = ft_create_table();
+		ft_set_border_style(table, FT_SIMPLE_STYLE);
+		ft_set_cell_prop(table, 0, FT_ANY_COLUMN, FT_CPROP_ROW_TYPE, FT_ROW_HEADER);
+		ft_write_ln(table, "Position", "Name (Given Middle Family)", "Country", "Passport ID");
+
+		while (sqlite3_step(statement) == SQLITE_ROW) {
+			int row				= sqlite3_column_int(statement, 0);
+			int column			= sqlite3_column_int(statement, 1);
+			char* given_name	= sqlite3_column_text(statement, 2);
+			char* middle_name	= sqlite3_column_text(statement, 3);
+			char* family_name	= sqlite3_column_text(statement, 4);
+			char* country		= sqlite3_column_text(statement, 5);
+			char* passport_id	= sqlite3_column_text(statement, 6);
+
+			char* pos_str = dynamic_format("%d-%d", row, column);
+			char* name_str;
+			if (middle_name[0] != '\0') {
+				name_str = dynamic_format("%s %s %s", given_name, middle_name, family_name);
+			}
+			else {
+				name_str = dynamic_format("%s %s", given_name, family_name);
+			}
+
+			ft_write_ln(table, pos_str, name_str, country, passport_id);
+		}
+
+		printf("%s\n", ft_to_string(table));
+
+		sqlite3_finalize(statement);
+		ft_destroy_table(table);
+	}
+
+	free_value_set(flight_params, flight_table_identifiable_param_count, true);
 }
 
 void get_flight_sched(unsigned int* day, unsigned int* month, unsigned int* year, unsigned int* hour, unsigned int* minute, char* source_ap, char* destination_ap)
@@ -678,9 +767,18 @@ SqlValueParameter* get_identifiable_flight_seat(long long time_stamp, char sourc
 	int column;
 
 	printf("   : Set Row - ");
-	scanf_s("%d", &row);
+	while (scanf_s("%d", &row) == 0) {
+		printf("   : Invalid value. Try again.");
+		printf("   : Set Row - ");
+		empty_stdin();
+	}
+
 	printf("   : Set Column - ");
-	scanf_s("%d", &column);
+	while (scanf_s("%d", &column) == 0) {
+		printf("   : Invalid value. Try again.");
+		printf("   : Set Column - ");
+		empty_stdin();
+	}
 
 	return format_set(seats_table_params, seats_table_identifiable_seat_param_count, time_stamp, source_ap, destination_ap, row, column);
 }
