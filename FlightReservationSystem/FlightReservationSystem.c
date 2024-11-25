@@ -139,12 +139,15 @@ void print_header_stuff() {
 ##############++++++----++++++++++++++++++++##############################################--########\n\
 \n";
 
-	print_formatted(slugcat, TEXTFORMAT_BLINKING, TEXTCOLOR_CYAN);
+	printf_rich(slugcat, TEXTFORMAT_BOLD, TEXTCOLOR_CYAN, TEXTFORMAT_BLINKING2);
+
+	reset_rich_format();
 }
 
 void display_options(sqlite3* data_base) {
 	while (true) {
-		printf("Choose a command.\n");
+		printf_rich("CHOOSE A COMMAND\n", TEXTFORMAT_BOLD, TEXTFORMAT_DOUBLEUNDERLINE);
+		printf("\n");
 		printf("Negatives. Exit Program\n");
 		printf("0. Clear Screen\n");
 		printf("1. Add Flight Schedule \n");
@@ -158,15 +161,17 @@ void display_options(sqlite3* data_base) {
 		printf("- ");
 
 		int option;
+		begin_rich_printing(TEXTCOLOR_GREEN);
 		int res = scanf_s("%d", &option);
+		reset_rich_format();
 
 		if (res == 0) {
 			empty_stdin();
-			printf("Invalid input.\n\n");
+			printf_rich("Invalid input.\n\n", TEXTCOLOR_RED);
 			continue;
 		}
 
-		if (res < 0) {
+		if (option < 0) {
 			return;
 		}
 
@@ -693,7 +698,9 @@ void get_flight_sched(unsigned int* day, unsigned int* month, unsigned int* year
 {
 	while (true) {
 		printf("   : Day/Month/Year (Include Century) - ");
+		begin_rich_printing(TEXTCOLOR_GREEN);
 		int res = scanf_s("%u/%u/%u", day, month, year);
+		reset_rich_format();
 
 		if (res != 3) {
 			printf("   : Invalid input.\n");
@@ -721,7 +728,9 @@ void get_flight_sched(unsigned int* day, unsigned int* month, unsigned int* year
 
 	while (true) {
 		printf("   : hh:mm (24 hour system) - ");
+		begin_rich_printing(TEXTCOLOR_GREEN);
 		int res = scanf_s("%u:%u", hour, minute);
+		reset_rich_format();
 
 		if (res != 2) {
 			printf("   : Some of the inputs are invalid.\n");
@@ -742,14 +751,15 @@ void get_flight_sched(unsigned int* day, unsigned int* month, unsigned int* year
 		break;
 	}
 
-	char buffer[50];
-	buffer[49] = '\0';
+	char buffer[50] = { '\0' };
 
 	while (true) {
 		reset_loop:
 
 		printf("   : Source Airport ICOA Code (Must be four letters) - ");
+		begin_rich_printing(TEXTCOLOR_GREEN);
 		scanf_s("%s", buffer, (unsigned int)sizeof(char) * 50);
+		reset_rich_format();
 
 		if (strlen(buffer) != 4) {
 			printf("   : Airport codes always and strictly contains only four. (input: %s)\n", buffer);
@@ -777,7 +787,9 @@ void get_flight_sched(unsigned int* day, unsigned int* month, unsigned int* year
 		reset_loop_b:
 
 		printf("   : Destination Airport ICOA Code (Must be four letters) - ");
+		begin_rich_printing(TEXTCOLOR_GREEN);
 		scanf_s("%s", buffer, (unsigned int)sizeof(char) * 50);
+		reset_rich_format();
 
 		if (strlen(buffer) != 4) {
 			printf("   : Airport codes always and strictly contains only four. (input: %s)\n", buffer);

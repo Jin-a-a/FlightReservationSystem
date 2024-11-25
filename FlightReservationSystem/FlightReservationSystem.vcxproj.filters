@@ -21,9 +21,6 @@
     <ClCompile Include="..\..\..\C Libs\SQLite\sqlite3\sqlite3.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="FlightReservationSystem.c">
-      <Filter>Resource Files</Filter>
-    </ClCompile>
     <ClCompile Include="Sqlite3Helper.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -31,6 +28,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\C Libs\LibFort\fort.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FlightReservationSystem.c">
+      <Filter>Resource Files</Filter>
+    </ClCompile>
+    <ClCompile Include="console_colour.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

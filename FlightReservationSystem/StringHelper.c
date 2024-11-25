@@ -56,10 +56,10 @@ char* dynamic_format(const char* format, ...) {
 	return buffer;
 }
 
-void dynamic_concat(char** destination, char* input, unsigned int* capacity) {
+void dynamic_concat(char** destination, const char* input, unsigned int* capacity) {
 	if (*destination == NULL) {
 		printf("Destination is null");
-		exit(-1);
+		return;
 	}
 
 	size_t a = strlen(*destination);
@@ -71,7 +71,7 @@ void dynamic_concat(char** destination, char* input, unsigned int* capacity) {
 		char* new_destination = malloc(sizeof(char) * (*capacity));
 		if (new_destination == NULL) {
 			printf("Malloc failed.");
-			exit(-1);
+			return;
 		}
 		strcpy_s(new_destination, *capacity, *destination);
 		free(*destination);

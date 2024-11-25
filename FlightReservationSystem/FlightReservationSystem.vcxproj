@@ -136,6 +136,7 @@
     <ClCompile Include="..\..\..\C Libs\LibFort\fort.c" />
     <ClCompile Include="..\..\..\C Libs\SQLite\sqlite3\shell.c" />
     <ClCompile Include="..\..\..\C Libs\SQLite\sqlite3\sqlite3.c" />
+    <ClCompile Include="console_colour.c" />
     <ClCompile Include="FlightReservationSystem.c" />
     <ClCompile Include="Sqlite3Helper.c" />
     <ClCompile Include="StringHelper.c" />

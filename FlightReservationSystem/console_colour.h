@@ -1,8 +1,7 @@
-#pragma once
-
 #include <stdio.h>
+#include <stdarg.h>
 #include <malloc.h>
-#include <varargs.h>
+#include "StringHelper.h"
 
 #define TEXTFORMAT_NORMAL 0
 #define TEXTFORMAT_BOLD 1
@@ -14,45 +13,50 @@
 #define TEXTFORMAT_SWAPCOLOR 7
 #define TEXTFORMAT_INVISIBLE 8
 #define TEXTFORMAT_STRIKETHROUGH 9
+#define TEXTFORMAT_DOUBLEUNDERLINE 21
+#define TEXTFORMAT_LOWUNDERLINE 52
 
 #define TEXTCOLOR_BLACK 30
 #define TEXTCOLOR_RED 31
 #define TEXTCOLOR_GREEN 32
-#define TEXTCOLOR_YELLOW 33
+#define TEXTCOLOR_GOLD 33
 #define TEXTCOLOR_BLUE 34
 #define TEXTCOLOR_PURPLE 35
-#define TEXTCOLOR_CYAN 36
+#define TEXTCOLOR_LIGHTBLUE 36
 #define TEXTCOLOR_WHITE 37
 
-static char* dynamic_format(const char* format, ...) {
-	va_list ap;
-	va_start(ap, format);
-	int n = _vscprintf(format, ap) + 1;
+#define TEXTCOLOR_GRAY 90
+#define TEXTCOLOR_LIGHTRED 91
+#define TEXTCOLOR_VIGRANTGREEN 92
+#define TEXTCOLOR_LIGHTYELLOW 93
+#define TEXTCOLOR_LIGHTBLUE2 94
+#define TEXTCOLOR_MAGENTA 95
+#define TEXTCOLOR_CYAN 96
+#define TEXTCOLOR_EVENWHITER 97
 
-	char* buffer = malloc(sizeof(char) * n);
-	if (buffer == NULL) {
-		printf("Null Reference Error.");
-		exit(-1);
-	}
+#define TEXTHIGHLIGHT_BLACK 40
+#define TEXTHIGHLIGHT_RED 41
+#define TEXTHIGHLIGHT_GREEN 42
+#define TEXTHIGHLIGHT_GOLD 43
+#define TEXTHIGHLIGHT_BLUE 44
+#define TEXTHIGHLIGHT_PURPLE 45
+#define TEXTHIGHLIGHT_LIGHTBLUE 46
+#define TEXTHIGHLIGHT_WHITE 47
 
-	vsnprintf(buffer, sizeof(char) * n, format, ap);
+#define TEXTHIGHLIGHT_GRAY 100
+#define TEXTHIGHLIGHT_LIGHTRED 101
+#define TEXTHIGHLIGHT_VIGRANTGREEN 102
+#define TEXTHIGHLIGHT_LIGHTYELLOW 103
+#define TEXTHIGHLIGHT_LIGHTBLUE2 104
+#define TEXTHIGHLIGHT_MAGENTA 105
+#define TEXTHIGHLIGHT_CYAN 106
+#define TEXTHIGHLIGHT_EVENWHITER 107
 
-	va_end(ap);
-	return buffer;
-}
+void reset_rich_format();
+void _vbegin_rich_printing(int arg_count, int* arr);
+void vbegin_rich_printing(int arg_count, ...);
+void vprintf_rich(int arg_count, char* str, ...);
 
-void reset_format() {
-	printf("\033[0m");
-}
-
-void begin_format(int format, int colour) {
-	char* clr_format = dynamic_format("\033[%d;%dm", format, colour);
-	printf(clr_format);
-	free(clr_format);
-}
-
-void print_formatted(char* str, int format, int colour) {
-	begin_format(format, colour);
-	printf(str);
-	reset_format();
-}
+#define VA_NARGS2(...) ((int)(sizeof((int[]){ __VA_ARGS__ })/sizeof(int)))
+#define begin_rich_printing(...) vbegin_rich_printing(VA_NARGS2(__VA_ARGS__), __VA_ARGS__)
+#define printf_rich(str, ...) vprintf_rich(VA_NARGS2(__VA_ARGS__), str, __VA_ARGS__)
