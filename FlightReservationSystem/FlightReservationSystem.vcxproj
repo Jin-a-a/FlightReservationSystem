@@ -144,6 +144,7 @@
     <ClInclude Include="..\..\..\C Libs\LibFort\fort.h" />
     <ClInclude Include="..\..\..\C Libs\SQLite\sqlite3\sqlite3.h" />
     <ClInclude Include="..\..\..\C Libs\SQLite\sqlite3\sqlite3ext.h" />
+    <ClInclude Include="console_colour.h" />
     <ClInclude Include="Sqlite3Helper.h" />
     <ClInclude Include="StringHelper.h" />
   </ItemGroup>

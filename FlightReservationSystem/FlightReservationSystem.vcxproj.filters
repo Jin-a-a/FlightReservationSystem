@@ -50,5 +50,8 @@
     <ClInclude Include="..\..\..\C Libs\LibFort\fort.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="console_colour.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

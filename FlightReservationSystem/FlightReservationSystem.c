@@ -4,6 +4,8 @@
 #include <malloc.h>
 #include <string.h>
 #include <stdbool.h>
+#include <conio.h>
+#include "console_colour.h"
 #include "Sqlite3Helper.h"
 #include "StringHelper.h"
 #include "D:\TechnicalProjects\C Libs\SQLite\sqlite3\sqlite3.h"
@@ -29,6 +31,7 @@ int seats_table_identifiable_flight_param_count;
 //Range to identify the flight and the position of the seat.
 int seats_table_identifiable_seat_param_count;
 
+void print_header_stuff();
 static void empty_stdin(void);
 
 void display_options(sqlite3* data_base);
@@ -95,16 +98,55 @@ int main()
 	seats_table_identifiable_seat_param_count = 5;
 	seats_table_params = stack_seats_table_params;
 
+	print_header_stuff();
+
 	sqlite3* data_base;
 	sqlite3_open(data_base_file, &data_base);
 	display_options(data_base);
 	sqlite3_close(data_base);
 }
 
+void print_header_stuff() {
+	printf("Welcome to Slugcat Airlines console!\n");
+
+	char* slugcat = "\
+####################################################################################################\n\
+####################################################################################################\n\
+#######################..--#############----########################################################\n\
+######################...--############...----######################################################\n\
+####################+....--############....---######################################################\n\
+####################.....--###########......--###########  ##############  +########################\n\
+####################......##-.....+###......--###########  #############   #########################\n\
+###################-.......................--.############  ############ +##########################\n\
+###################-..+##..................---############. ##. -######  #########.#################\n\
+###################+.####......######......--##############  #   #####. #########. #################\n\
+###################.#####.....-#######.-----###############+   #  #### .####.      .################\n\
+##################.+#####.....########-----.################  ##- -#   ####  ####  .################\n\
+#################..#####.....#########------#####################.  .####+ .###.    ################\n\
+#################..####-.....########-------#############################  ##   ##+ +###############\n\
+################+...#+..##...#######--------.#############################   .#####  ###############\n\
+#################..-------------++--------++-#######################################################\n\
+#################-.------------------------++#######################################################\n\
+##################.----------------------++++###################..############ .####################\n\
+###################.--------------------++++++##################  ###########  #####################\n\
+####################.----------+----+++++++++-###################  #########. +#####################\n\
+###################...--+++++++++++++++++++++-#################### .##  #### .######################\n\
+###################...--++++++++++++++++++++++####################  . .  ##  #####       ###########\n\
+##################..-.--+++++++++++++++++++++#####################+  -## .  #####  ####   ##########\n\
+#################-------+++++++++++++++++++++###########################   +##### +###  #  #########\n\
+################+---------+++++++++++++++++++####################################     -##. #########\n\
+###############+---------+++++++++++++++++++##############################################  ########\n\
+##############++++++----++++++++++++++++++++##############################################--########\n\
+\n";
+
+	print_formatted(slugcat, TEXTFORMAT_BLINKING, TEXTCOLOR_CYAN);
+}
+
 void display_options(sqlite3* data_base) {
 	while (true) {
 		printf("Choose a command.\n");
-		printf("0. Exit Program\n");
+		printf("Negatives. Exit Program\n");
+		printf("0. Clear Screen\n");
 		printf("1. Add Flight Schedule \n");
 		printf("2. Remove Flight Schedule \n");
 		printf("3. Delay Flight Schedule \n");
@@ -124,9 +166,17 @@ void display_options(sqlite3* data_base) {
 			continue;
 		}
 
+		if (res < 0) {
+			return;
+		}
+
 		switch (option) {
 		case 0:
-			return;
+			system("cls");
+
+			print_header_stuff();
+
+			break;
 		case 1:
 			add_flight_sched(data_base);
 			break;
@@ -547,7 +597,7 @@ void view_flight_schedule(sqlite3* data_base) {
 		ft_write_ln(table, date, time, source_ap, destin_ap, delay_str, status_str);
 	}
 
-	printf("%s\n", ft_to_string(table));
+	printf("\n%s\n", ft_to_string(table));
 	ft_destroy_table(table);
 	sqlite3_finalize(statement);
 }
@@ -607,7 +657,7 @@ void view_flight_seats(sqlite3* data_base) {
 		ft_table_t* table = ft_create_table();
 		ft_set_border_style(table, FT_SIMPLE_STYLE);
 		ft_set_cell_prop(table, 0, FT_ANY_COLUMN, FT_CPROP_ROW_TYPE, FT_ROW_HEADER);
-		ft_write_ln(table, "Position", "Name (Given Middle Family)", "Country", "Passport ID");
+		ft_write_ln(table, "Position (Row - Column)", "Name (Given Middle Family)", "Country", "Passport ID");
 
 		while (sqlite3_step(statement) == SQLITE_ROW) {
 			int row				= sqlite3_column_int(statement, 0);
@@ -630,7 +680,7 @@ void view_flight_seats(sqlite3* data_base) {
 			ft_write_ln(table, pos_str, name_str, country, passport_id);
 		}
 
-		printf("%s\n", ft_to_string(table));
+		printf("\n%s\n", ft_to_string(table));
 
 		sqlite3_finalize(statement);
 		ft_destroy_table(table);
