@@ -1,6 +1,5 @@
 #pragma once
 
-#include "StringHelper.h"
 #include <stdio.h>
 #include <malloc.h>
 
@@ -23,6 +22,23 @@
 #define TEXTCOLOR_PURPLE 35
 #define TEXTCOLOR_CYAN 36
 #define TEXTCOLOR_WHITE 37
+
+static char* dynamic_format(const char* format, ...) {
+	va_list ap;
+	va_start(ap, format);
+	int n = _vscprintf(format, ap) + 1;
+
+	char* buffer = malloc(sizeof(char) * n);
+	if (buffer == NULL) {
+		printf("Null Reference Error.");
+		exit(-1);
+	}
+
+	vsnprintf(buffer, sizeof(char) * n, format, ap);
+
+	va_end(ap);
+	return buffer;
+}
 
 void reset_format() {
 	printf("\033[0m");
