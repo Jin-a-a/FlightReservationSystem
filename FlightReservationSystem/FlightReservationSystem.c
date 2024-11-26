@@ -68,6 +68,8 @@ void delay_flight_schedule(sqlite3* data_base);
 void cancel_flight_sched(sqlite3* data_base);
 void normalize_flight_schedule(sqlite3* data_base);
 void update_flight_seat(sqlite3* data_base);
+void remove_flight_seat(sqlite3* data_base);
+void clear_flight_seats(sqlite3* data_base);
 void view_flight_schedule(sqlite3* data_base);
 void view_flight_seats(sqlite3* data_base);
 
@@ -149,8 +151,10 @@ void display_options(sqlite3* data_base) {
 		printf("4. Cancel Flight Schedule \n");
 		printf("5. Restore Flight Schedule \n");
 		printf("6. Update Flight Seat \n");
-		printf("7. View Flight Schedule \n");
-		printf("8. View Flight Seats \n");
+		printf("7. Remove Flight Seat \n");
+		printf("8. Clear Flight Seat \n");
+		printf("9. View Flight Schedule \n");
+		printf("10. View Flight Seats \n");
 		printf("- ");
 
 		int option;
@@ -171,9 +175,7 @@ void display_options(sqlite3* data_base) {
 		switch (option) {
 		case 0:
 			system("cls");
-
 			print_header_stuff();
-
 			break;
 		case 1:
 			add_flight_sched(data_base);
@@ -194,9 +196,15 @@ void display_options(sqlite3* data_base) {
 			update_flight_seat(data_base);
 			break;
 		case 7:
-			view_flight_schedule(data_base);
+			remove_flight_seat(data_base);
 			break;
 		case 8:
+			clear_flight_seats(data_base);
+			break;
+		case 9:
+			view_flight_schedule(data_base);
+			break;
+		case 10:
 			view_flight_seats(data_base);
 			break;
 		default:
@@ -321,7 +329,9 @@ void delay_flight_schedule(sqlite3* data_base) {
 		int delay;
 
 		printf("   : Delay in minutes - ");
+		begin_rich_printing(TEXTCOLOR_GREEN);
 		scanf_s("%d", &delay);
+		reset_rich_format();
 
 		printf("   :\n");
 
@@ -475,16 +485,31 @@ void update_flight_seat(sqlite3* data_base) {
 		char passport_number[50];
 
 		SqlValueParamArray identifiable_seat = get_identifiable_combined_seat(time_stamp, source_ap, destination_ap);
+
 		printf("   : Given Name - ");
+		begin_rich_printing(TEXTCOLOR_GREEN);
 		scanf_s("%s", given_name, 50);
+		reset_rich_format();
+
 		printf("   : Middle Name - ");
+		begin_rich_printing(TEXTCOLOR_GREEN);
 		scanf_s("%s", middle_name, 50);
+		reset_rich_format();
+
 		printf("   : Family Name - ");
+		begin_rich_printing(TEXTCOLOR_GREEN);
 		scanf_s("%s", family_name, 50);
+		reset_rich_format();
+
 		printf("   : Country - ");
+		begin_rich_printing(TEXTCOLOR_GREEN);
 		scanf_s("%s", country_name, 50);
+		reset_rich_format();
+
 		printf("   : Passport No. - ");
+		begin_rich_printing(TEXTCOLOR_GREEN);
 		scanf_s("%s", passport_number, 50);
+		reset_rich_format();
 
 		result = sqlite3_check_if_value_exists(data_base, seats_table, identifiable_seat, &err_code, &has_row);
 		exit_on_err(result, err_code);
@@ -509,6 +534,96 @@ void update_flight_seat(sqlite3* data_base) {
 
 		printf("   :\n");
 		printf("   : Successfully updated the seat.\n");
+	}
+
+	free_value_set(flight_value_id);
+}
+
+void remove_flight_seat(sqlite3* data_base) {
+	char* err_code;
+	int result = 0;
+	unsigned int day, month, year, hour, minute;
+	char source_ap[5];
+	char destination_ap[5];
+	bool has_row;
+
+	result = sqlite3_table_if_not_exists(data_base, flight_table, flight_table_parameters, &err_code);
+	exit_on_err(result, err_code);
+
+	printf("Remove Flight Seat\n");
+	get_flight_sched(&day, &month, &year, &hour, &minute, source_ap, destination_ap);
+
+	SqlParamArray flight_id = param_array_slice(flight_table_parameters, flight_table_identifer_range);
+	SqlValueParamArray flight_value_id = format_param_set(flight_id, day, month, year, hour, minute, source_ap, destination_ap);
+
+	result = sqlite3_check_if_value_exists(data_base, flight_table, flight_value_id, &err_code, &has_row);
+	exit_on_err(result, err_code);
+
+	printf("   :\n");
+
+	if (!has_row) {
+		printf("   : This flight record does not exist. (%u/%u/%u, %u:%u  %s ~> %s)\n", day, month, year, hour, minute, source_ap, destination_ap);
+	}
+	else {
+		printf("   :\n");
+
+		result = sqlite3_table_if_not_exists(data_base, seats_table, seats_table_parameters, &err_code);
+		exit_on_err(result, err_code);
+
+		long long time_stamp = get_timestamp(day, month, year, hour, minute);
+
+		SqlValueParamArray identifiable_seat = get_identifiable_combined_seat(time_stamp, source_ap, destination_ap);
+
+		result = sqlite3_delete_value_where_all_and(data_base, seats_table, identifiable_seat, &err_code);
+		exit_on_err(result, err_code);
+
+		printf("   : Successfully delete a seat. (%u/%u/%u, %u:%u  %s ~> %s)\n", day, month, year, hour, minute, source_ap, destination_ap);
+
+		free_value_set(identifiable_seat);
+	}
+
+	free_value_set(flight_value_id);
+}
+
+void clear_flight_seats(sqlite3* data_base) {
+	char* err_code;
+	int result = 0;
+	unsigned int day, month, year, hour, minute;
+	char source_ap[5];
+	char destination_ap[5];
+	bool has_row;
+
+	result = sqlite3_table_if_not_exists(data_base, flight_table, flight_table_parameters, &err_code);
+	exit_on_err(result, err_code);
+
+	printf("Clear Flight Seat\n");
+	get_flight_sched(&day, &month, &year, &hour, &minute, source_ap, destination_ap);
+
+	SqlParamArray flight_id = param_array_slice(flight_table_parameters, flight_table_identifer_range);
+	SqlValueParamArray flight_value_id = format_param_set(flight_id, day, month, year, hour, minute, source_ap, destination_ap);
+
+	result = sqlite3_check_if_value_exists(data_base, flight_table, flight_value_id, &err_code, &has_row);
+	exit_on_err(result, err_code);
+
+	printf("   :\n");
+
+	if (!has_row) {
+		printf("   : This flight record does not exist. (%u/%u/%u, %u:%u  %s ~> %s)\n", day, month, year, hour, minute, source_ap, destination_ap);
+	}
+	else {
+		result = sqlite3_table_if_not_exists(data_base, seats_table, seats_table_parameters, &err_code);
+		exit_on_err(result, err_code);
+
+		long long time_stamp = get_timestamp(day, month, year, hour, minute);
+		SqlParamArray flight_identifier = param_array_slice(seats_table_parameters, seats_table_flight_identifier_range);
+		SqlValueParamArray flight_value_id = format_param_set(flight_identifier, time_stamp, source_ap, destination_ap);
+
+		result = sqlite3_delete_value_where_all_and(data_base, seats_table, flight_value_id, &err_code);
+		exit_on_err(result, err_code);
+
+		printf("   : Cleared all flight seats. (%u/%u/%u, %u:%u  %s ~> %s)\n", day, month, year, hour, minute, source_ap, destination_ap);
+
+		free_value_set(flight_value_id);
 	}
 
 	free_value_set(flight_value_id);
@@ -804,18 +919,26 @@ SqlValueParamArray get_identifiable_combined_seat(long long time_stamp, char sou
 	int column;
 
 	printf("   : Set Row - ");
+	begin_rich_printing(TEXTCOLOR_GREEN);
 	while (scanf_s("%d", &row) == 0) {
+		reset_rich_format();
 		printf("   : Invalid value. Try again.");
 		printf("   : Set Row - ");
 		empty_stdin();
+		begin_rich_printing(TEXTCOLOR_GREEN);
 	}
+	reset_rich_format();
 
 	printf("   : Set Column - ");
+	begin_rich_printing(TEXTCOLOR_GREEN);
 	while (scanf_s("%d", &column) == 0) {
+		reset_rich_format();
 		printf("   : Invalid value. Try again.");
 		printf("   : Set Column - ");
 		empty_stdin();
+		begin_rich_printing(TEXTCOLOR_GREEN);
 	}
+	reset_rich_format();
 
 	SqlParamArray seat_flight_id = param_array_slice(seats_table_parameters, seats_table_combined_identifier_range);
 	return format_param_set(seat_flight_id, time_stamp, source_ap, destination_ap, row, column);
