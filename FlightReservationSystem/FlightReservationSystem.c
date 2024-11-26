@@ -520,17 +520,33 @@ void view_flight_schedule(sqlite3* data_base) {
 	int buffer_size = sizeof(char) * 80;
 	int half_buffer_size = buffer_size / 2;
 
-	printf("Viewing Flight Schedules\n");
+	const SqlParamArray date_time_ordered = {
+		.arr = (SqlParameter[5]) { 
+			[0] = flight_table_parameters.arr[4], //minute
+			[1] = flight_table_parameters.arr[3], //hour
+			[2] = flight_table_parameters.arr[0], //day
+			[3] = flight_table_parameters.arr[1], //month
+			[4] = flight_table_parameters.arr[2], //year
+		},
+		.length = 5
+	};
 
-	sprintf_s(stuff, buffer_size, "SELECT * FROM %s", flight_table);
+	char* sql_base = "SELECT * FROM %s ORDER BY %s";
+	char* order_by_str = combine_param_names_v2(date_time_ordered);
+	char* exec_sql = dynamic_format(sql_base, flight_table, order_by_str);
+
+	printf("Viewing Flight Schedules\n");
 
 	ft_table_t* table = ft_create_table();
 	ft_set_border_style(table, FT_SIMPLE_STYLE);
 	ft_set_cell_prop(table, 0, FT_ANY_COLUMN, FT_CPROP_ROW_TYPE, FT_ROW_HEADER);
 	ft_write_ln(table, "Date", "Time", "Source Airport Code", "Destination Airport Code", "Delay Time", "Status");
 
-	int result = sqlite3_prepare_v2(data_base, stuff, buffer_size, &statement, NULL);
+	int result = sqlite3_prepare_v2(data_base, exec_sql, -1, &statement, NULL);
 	exit_on_err(result, NULL);
+
+	free(order_by_str);
+	free(exec_sql);
 
 	while (sqlite3_step(statement) == SQLITE_ROW) {
 		int day			= sqlite3_column_int(statement, 0);
