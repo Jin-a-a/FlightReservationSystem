@@ -522,11 +522,11 @@ void view_flight_schedule(sqlite3* data_base) {
 
 	const SqlParamArray date_time_ordered = {
 		.arr = (SqlParameter[5]) { 
-			[0] = flight_table_parameters.arr[4], //minute
-			[1] = flight_table_parameters.arr[3], //hour
+			[4] = flight_table_parameters.arr[4], //minute
+			[3] = flight_table_parameters.arr[3], //hour
 			[2] = flight_table_parameters.arr[0], //day
-			[3] = flight_table_parameters.arr[1], //month
-			[4] = flight_table_parameters.arr[2], //year
+			[1] = flight_table_parameters.arr[1], //month
+			[0] = flight_table_parameters.arr[2], //year
 		},
 		.length = 5
 	};
