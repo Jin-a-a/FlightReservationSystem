@@ -18,18 +18,45 @@
 const char* data_base_file = "flights.db";
 
 const char* flight_table = "FLIGHTS";
-const SqlParameter* flight_table_params;
-int flight_table_param_count;
-int flight_table_identifiable_param_count;
-int flight_table_status_index;
+const SqlParamArray flight_table_parameters = {
+	.arr = (SqlParameter[9]){
+		[0] = { .name = "Day", .column_type = "INT" },
+		[1] = { .name = "Month", .column_type = "INT" },
+		[2] = { .name = "Year", .column_type = "INT" },
+		[3] = { .name = "Hour", .column_type = "INT" },
+		[4] = { .name = "Minute", .column_type = "INT" },
+		[5] = { .name = "SourceAirportCode", .column_type = "TEXT" },
+		[6] = { .name = "DestinationAirportCode", .column_type = "TEXT" },
+		[7] = { .name = "Delay", .column_type = "INT" },
+		[8] = { .name = "Status", .column_type = "INT" },
+	},
+	.length = 9
+};
+const Range flight_table_identifer_range = { .index = 0, .range = 7 };
+const Range flight_table_data_range = { .index = 7, .range = 2 };
+const int flight_table_status_index = 8;
 
 const char* seats_table = "SEATS";
-const SqlParameter* seats_table_params;
-int seats_table_param_count;
-//Range to identify only the flight it belongs to.
-int seats_table_identifiable_flight_param_count;
-//Range to identify the flight and the position of the seat.
-int seats_table_identifiable_seat_param_count;
+const SqlParamArray seats_table_parameters = {
+	.arr = (SqlParameter[10]){
+		[0] = {.name = "Timestamp", .column_type = "INT" },
+		[1] = {.name = "SourceAirportCode", .column_type = "TEXT" },
+		[2] = {.name = "DestinationAirportCode", .column_type = "TEXT" },
+		[3] = {.name = "Row", .column_type = "INT" },
+		[4] = {.name = "Column", .column_type = "INT" },
+		[5] = {.name = "GivenName", .column_type = "TEXT" },
+		[6] = {.name = "MiddleName", .column_type = "TEXT" },
+		[7] = {.name = "FamilyName", .column_type = "TEXT" },
+		[8] = {.name = "Country", .column_type = "TEXT" },
+		[9] = {.name = "PassportNumber", .column_type = "TEXT" },
+	},
+	.length = 10
+};
+const Range seats_table_flight_identifier_range = { .index = 0, .range = 3 };
+const Range seats_table_seats_identifier_range = { .index = 3, .range = 2 };
+const Range seats_table_combined_identifier_range = { .index = 0, .range = 5 };
+const Range seats_table_seats_id_and_data_range = { .index = 3, .range = 7 };
+const Range seats_table_data_range = { .index = 5, .range = 5 };
 
 void print_header_stuff();
 static void empty_stdin(void);
@@ -45,8 +72,7 @@ void view_flight_schedule(sqlite3* data_base);
 void view_flight_seats(sqlite3* data_base);
 
 void get_flight_sched(unsigned int* day, unsigned int* month, unsigned int* year, unsigned int* hour, unsigned int* minute, char* source_ap, char* destination_ap);
-SqlValueParameter* get_flight_sched_v2();
-SqlValueParameter* get_identifiable_flight_seat(long long time_stamp, char source_ap[5], char destination_ap[5]);
+SqlValueParamArray get_identifiable_combined_seat(long long time_stamp, char source_ap[5], char destination_ap[5]);
 
 long long get_timestamp(unsigned int day, unsigned int month, unsigned int year, unsigned int hour, unsigned int minute);
 
@@ -65,39 +91,6 @@ static void exit_on_err(int result, char* err_code) {
 
 int main()
 {
-	SqlParameter stack_flight_table_params[9] = {
-		[0] = (SqlParameter){.name = "Day", .type = "INT" },
-		[1] = (SqlParameter){.name = "Month", .type = "INT" },
-		[2] = (SqlParameter){.name = "Year", .type = "INT" },
-		[3] = (SqlParameter){.name = "Hour", .type = "INT" },
-		[4] = (SqlParameter){.name = "Minute", .type = "INT" },
-		[5] = (SqlParameter){.name = "SourceAirportCode", .type = "TEXT" },
-		[6] = (SqlParameter){.name = "DestinationAirportCode", .type = "TEXT" },
-		[7] = (SqlParameter){.name = "Delay", .type = "INT" },
-		[8] = (SqlParameter){.name = "Status", .type = "INT" },
-	};
-	flight_table_param_count = 9;
-	flight_table_identifiable_param_count = 7;
-	flight_table_params = stack_flight_table_params;
-	flight_table_status_index = 8;
-
-	SqlParameter stack_seats_table_params[10] = {
-		[0] = (SqlParameter){.name = "Timestamp", .type = "INT" },
-		[1] = (SqlParameter){.name = "SourceAirportCode", .type = "TEXT" },
-		[2] = (SqlParameter){.name = "DestinationAirportCode", .type = "TEXT" },
-		[3] = (SqlParameter){.name = "Row", .type = "INT" },
-		[4] = (SqlParameter){.name = "Column", .type = "INT" },
-		[5] = (SqlParameter){.name = "GivenName", .type = "TEXT" },
-		[6] = (SqlParameter){.name = "MiddleName", .type = "TEXT" },
-		[7] = (SqlParameter){.name = "FamilyName", .type = "TEXT" },
-		[8] = (SqlParameter){.name = "Country", .type = "TEXT" },
-		[9] = (SqlParameter){.name = "PassportNumber", .type = "TEXT" },
-	};
-	seats_table_param_count = 10;
-	seats_table_identifiable_flight_param_count = 3;
-	seats_table_identifiable_seat_param_count = 5;
-	seats_table_params = stack_seats_table_params;
-
 	print_header_stuff();
 
 	sqlite3* data_base;
@@ -221,17 +214,17 @@ void add_flight_sched(sqlite3* data_base) {
 	unsigned int day, month, year, hour, minute;
 	char source_ap[5];
 	char destination_ap[5];
-	SqlValueParameter* set;
+	SqlValueParamArray set;
 	bool has_row;
 
-	result = sqlite3_table_if_not_exists(data_base, flight_table, flight_table_params, flight_table_param_count, &err_code);
+	result = sqlite3_table_if_not_exists(data_base, flight_table, flight_table_parameters, &err_code);
 	exit_on_err(result, err_code);
 
 	printf("Adding Flight Sched\n");
 	get_flight_sched(&day, &month, &year, &hour, &minute, source_ap, destination_ap);
-
-	set = format_set(flight_table_params, flight_table_param_count, day, month, year, hour, minute, source_ap, destination_ap, 0, ONSCHED);
-	result = sqlite3_check_if_value_exists(data_base, flight_table, set, flight_table_identifiable_param_count, &err_code, &has_row);
+	
+	set = format_param_set(flight_table_parameters, day, month, year, hour, minute, source_ap, destination_ap, 0, ONSCHED);
+	result = sqlite3_check_if_value_exists(data_base, flight_table, set, &err_code, &has_row);
 	exit_on_err(result, err_code);
 
 	printf("   :\n");
@@ -240,13 +233,13 @@ void add_flight_sched(sqlite3* data_base) {
 		printf("   : Flight Schedule already exists %u/%u/%u, %u:%u  %s ~> %s\n", day, month, year, hour, minute, source_ap, destination_ap);
 	}
 	else {
-		result = sqlite3_insert_value(data_base, flight_table, set, flight_table_param_count, &err_code);
+		result = sqlite3_insert_value(data_base, flight_table, set, &err_code);
 		exit_on_err(result, err_code);
 
 		printf("   : Successfully added %u/%u/%u, %u:%u  %s ~> %s\n", day, month, year, hour, minute, source_ap, destination_ap);
 	}
 
-	free_value_set(set, flight_table_param_count, true);
+	free_value_set(set);
 
 	printf("\n");
 }
@@ -257,43 +250,44 @@ void delete_flight_sched(sqlite3* data_base) {
 	unsigned int day, month, year, hour, minute;
 	char source_ap[5];
 	char destination_ap[5];
-	SqlValueParameter* set;
 	bool has_row;
 
-	result = sqlite3_table_if_not_exists(data_base, flight_table, flight_table_params, flight_table_param_count, &err_code);
+	result = sqlite3_table_if_not_exists(data_base, flight_table, flight_table_parameters, &err_code);
 	exit_on_err(result, err_code);
 
-	result = sqlite3_table_if_not_exists(data_base, seats_table, seats_table_params, seats_table_param_count, &err_code);
+	result = sqlite3_table_if_not_exists(data_base, seats_table, flight_table_parameters, &err_code);
 	exit_on_err(result, err_code);
 
 	printf("Deleting Flight Sched\n");
 	get_flight_sched(&day, &month, &year, &hour, &minute, source_ap, destination_ap);
 
-	set = format_set(flight_table_params, flight_table_identifiable_param_count, day, month, year, hour, minute, source_ap, destination_ap);
+	SqlParamArray flight_sched_identifers = param_array_slice(flight_table_parameters, flight_table_identifer_range);
+	SqlValueParamArray flight_sched_value_id = format_param_set(flight_sched_identifers, day, month, year, hour, minute, source_ap, destination_ap);
 
-	result = sqlite3_check_if_value_exists(data_base, flight_table, set, flight_table_identifiable_param_count, &err_code, &has_row);
+	result = sqlite3_check_if_value_exists(data_base, flight_table, flight_sched_value_id, &err_code, &has_row);
 	exit_on_err(result, err_code);
 
 	printf("   :\n");
 
 	if (has_row) {
-		result = sqlite3_delete_value_where_all_and(data_base, flight_table, set, 7, &err_code);
+		result = sqlite3_delete_value_where_all_and(data_base, flight_table, flight_sched_value_id, &err_code);
 		exit_on_err(result, err_code);
 
 		unsigned long long timestamp = get_timestamp(day, month, year, hour, minute);
-		SqlValueParameter* set_b = format_set(seats_table_params, seats_table_identifiable_flight_param_count, timestamp, source_ap, destination_ap);
-		result = sqlite3_delete_value_where_all_and(data_base, seats_table, set_b, seats_table_identifiable_flight_param_count, &err_code);
+		SqlParamArray seats_table_flight_identifier_set = param_array_slice(seats_table_parameters, seats_table_flight_identifier_range);
+		SqlValueParamArray seats_table_flight_id_val_set = format_param_set(seats_table_flight_identifier_set, timestamp, source_ap, destination_ap);
+		result = sqlite3_delete_value_where_all_and(data_base, seats_table, seats_table_flight_id_val_set, &err_code);
 		exit_on_err(result, err_code);
 
 		printf("   : Successfully deleted flight records.\n");
 
-		free_value_set(set_b, seats_table_identifiable_flight_param_count, true);
+		free_value_set(seats_table_flight_id_val_set);
 	}
 	else {
 		printf("   : Flight record does not exist. (%u/%u/%u, %u:%u  %s ~> %s)\n", day, month, year, hour, minute, source_ap, destination_ap);
 	}
 
-	free_value_set(set, flight_table_identifiable_param_count, true);
+	free_value_set(flight_sched_value_id);
 
 	printf("\n");
 }
@@ -304,18 +298,18 @@ void delay_flight_schedule(sqlite3* data_base) {
 	unsigned int day, month, year, hour, minute;
 	char source_ap[5];
 	char destination_ap[5];
-	SqlValueParameter* set;
 	bool has_row;
 
-	result = sqlite3_table_if_not_exists(data_base, flight_table, flight_table_params, flight_table_param_count, &err_code);
+	result = sqlite3_table_if_not_exists(data_base, flight_table, flight_table_parameters, &err_code);
 	exit_on_err(result, err_code);
 
 	printf("Delaying Flight Sched\n");
 	get_flight_sched(&day, &month, &year, &hour, &minute, source_ap, destination_ap);
 
-	set = format_set(flight_table_params, flight_table_identifiable_param_count, day, month, year, hour, minute, source_ap, destination_ap);
+	SqlParamArray flight_id = param_array_slice(flight_table_parameters, flight_table_identifer_range);
+	SqlValueParamArray flight_value_id = format_param_set(flight_id, day, month, year, hour, minute, source_ap, destination_ap);
 
-	result = sqlite3_check_if_value_exists(data_base, flight_table, set, flight_table_identifiable_param_count, &err_code, &has_row);
+	result = sqlite3_check_if_value_exists(data_base, flight_table, flight_value_id, &err_code, &has_row);
 	exit_on_err(result, err_code);
 
 	printf("   :\n");
@@ -331,24 +325,19 @@ void delay_flight_schedule(sqlite3* data_base) {
 
 		printf("   :\n");
 
-		SqlParameter* flight_data = &flight_table_params[7];
-		int flight_data_count = flight_table_param_count - flight_table_identifiable_param_count;
-		SqlValueParameter* flight_arguments = format_set(flight_data, flight_data_count, delay, DELAYED);
+		SqlParamArray flight_data = param_array_slice(flight_table_parameters, flight_table_data_range);
+		SqlValueParamArray flight_value_data = format_param_set(flight_data, delay, DELAYED);
 
-		result = sqlite3_set_value_where(
-			data_base, flight_table, 
-			set, flight_table_identifiable_param_count, 
-			flight_arguments, flight_data_count, 
-			&err_code);
+		result = sqlite3_set_value_where(data_base, flight_table, flight_value_id, flight_value_data, &err_code);
 		exit_on_err(result, err_code);
 
-		free_value_set(flight_arguments, flight_data_count, true);
+		free_value_set(flight_value_data);
 
 		printf("   : Delayed the flight (%u/%u/%u, %u:%u  %s ~> %s).\n", day, month, year, hour, minute, source_ap, destination_ap);
 		printf("   : By %d minutes.\n", delay);
 	}
 
-	free_value_set(set, flight_table_identifiable_param_count, true);
+	free_value_set(flight_value_id);
 }
 
 void cancel_flight_sched(sqlite3* data_base) {
@@ -357,18 +346,18 @@ void cancel_flight_sched(sqlite3* data_base) {
 	unsigned int day, month, year, hour, minute;
 	char source_ap[5];
 	char destination_ap[5];
-	SqlValueParameter* set;
 	sqlite3_stmt* statement;
 
-	result = sqlite3_table_if_not_exists(data_base, flight_table, flight_table_params, flight_table_param_count, &err_code);
+	result = sqlite3_table_if_not_exists(data_base, flight_table, flight_table_parameters, &err_code);
 	exit_on_err(result, err_code);
 
 	printf("Cancelling Flight Sched\n");
 	get_flight_sched(&day, &month, &year, &hour, &minute, source_ap, destination_ap);
 
-	set = format_set(flight_table_params, flight_table_identifiable_param_count, day, month, year, hour, minute, source_ap, destination_ap);
+	SqlParamArray flight_id = param_array_slice(flight_table_parameters, flight_table_identifer_range);
+	SqlValueParamArray flight_value_id = format_param_set(flight_id, day, month, year, hour, minute, source_ap, destination_ap);
 
-	result = sqlite3_get_row_statement(data_base, flight_table, set, flight_table_identifiable_param_count, &err_code, &statement);
+	result = sqlite3_get_row_statement(data_base, flight_table, flight_value_id, &err_code, &statement);
 	exit_on_err(result, err_code);
 
 	printf("   :\n");
@@ -382,25 +371,20 @@ void cancel_flight_sched(sqlite3* data_base) {
 			printf("   : Flight is already cancelled.\n");
 		}
 		else {
-			SqlParameter* flight_data = &flight_table_params[7];
-			int flight_data_count = flight_table_param_count - flight_table_identifiable_param_count;
-			SqlValueParameter* flight_arguments = format_set(flight_data, flight_data_count, 0, CANCELLED);
+			SqlParamArray flight_data = param_array_slice(flight_table_parameters, flight_table_data_range);
+			SqlValueParamArray flight_arguments = format_param_set(flight_data, 0, CANCELLED);
 
-			result = sqlite3_set_value_where(
-				data_base, flight_table,
-				set, flight_table_identifiable_param_count,
-				flight_arguments, flight_data_count,
-				&err_code);
+			result = sqlite3_set_value_where(data_base, flight_table, flight_value_id, flight_arguments, &err_code);
 			exit_on_err(result, err_code);
 
-			free_value_set(flight_arguments, flight_data_count, true);
+			free_value_set(flight_arguments, true);
 
 			printf("   : Cancelled the flight (%u/%u/%u, %u:%u  %s ~> %s).\n", day, month, year, hour, minute, source_ap, destination_ap);
 		}
 	}
 
 	sqlite3_finalize(statement);
-	free_value_set(set, flight_table_identifiable_param_count, true);
+	free_value_set(flight_value_id);
 }
 
 void normalize_flight_schedule(sqlite3* data_base) {
@@ -409,18 +393,18 @@ void normalize_flight_schedule(sqlite3* data_base) {
 	unsigned int day, month, year, hour, minute;
 	char source_ap[5];
 	char destination_ap[5];
-	SqlValueParameter* set;
 	sqlite3_stmt* statement;
 
-	result = sqlite3_table_if_not_exists(data_base, flight_table, flight_table_params, flight_table_param_count, &err_code);
+	result = sqlite3_table_if_not_exists(data_base, flight_table, flight_table_parameters, &err_code);
 	exit_on_err(result, err_code);
 
 	printf("Normalizing Flight Sched\n");
 	get_flight_sched(&day, &month, &year, &hour, &minute, source_ap, destination_ap);
 
-	set = format_set(flight_table_params, flight_table_identifiable_param_count, day, month, year, hour, minute, source_ap, destination_ap);
+	SqlParamArray flight_id = param_array_slice(flight_table_parameters, flight_table_identifer_range);
+	SqlValueParamArray flight_value_id = format_param_set(flight_id, day, month, year, hour, minute, source_ap, destination_ap);
 
-	result = sqlite3_get_row_statement(data_base, flight_table, set, flight_table_identifiable_param_count, &err_code, &statement);
+	result = sqlite3_get_row_statement(data_base, flight_table, flight_value_id, &err_code, &statement);
 	exit_on_err(result, err_code);
 
 	printf("   :\n");
@@ -435,25 +419,20 @@ void normalize_flight_schedule(sqlite3* data_base) {
 			printf("   : Flight is already on-schedule.\n");
 		}
 		else {
-			SqlParameter* flight_data = &flight_table_params[7];
-			int flight_data_count = flight_table_param_count - flight_table_identifiable_param_count;
-			SqlValueParameter* flight_arguments = format_set(flight_data, flight_data_count, 0, ONSCHED);
+			SqlParamArray flight_data = param_array_slice(flight_table_parameters, flight_table_data_range);
+			SqlValueParamArray flight_value_data = format_param_set(flight_data, 0, ONSCHED);
 
-			result = sqlite3_set_value_where(
-				data_base, flight_table,
-				set, flight_table_identifiable_param_count,
-				flight_arguments, flight_data_count,
-				&err_code);
+			result = sqlite3_set_value_where(data_base, flight_table, flight_value_id, flight_value_data, &err_code);
 			exit_on_err(result, err_code);
 
-			free_value_set(flight_arguments, flight_data_count, true);
+			free_value_set(flight_value_data);
 
 			printf("   : Normalized the flight (%u/%u/%u, %u:%u  %s ~> %s).\n", day, month, year, hour, minute, source_ap, destination_ap);
 		}
 	}
 
 	sqlite3_finalize(statement);
-	free_value_set(set, flight_table_identifiable_param_count, true);
+	free_value_set(flight_value_id);
 }
 
 void update_flight_seat(sqlite3* data_base) {
@@ -462,18 +441,18 @@ void update_flight_seat(sqlite3* data_base) {
 	unsigned int day, month, year, hour, minute;
 	char source_ap[5];
 	char destination_ap[5];
-	SqlValueParameter* set;
 	bool has_row;
 
-	result = sqlite3_table_if_not_exists(data_base, flight_table, flight_table_params, flight_table_param_count, &err_code);
+	result = sqlite3_table_if_not_exists(data_base, flight_table, flight_table_parameters, &err_code);
 	exit_on_err(result, err_code);
 
 	printf("Updating Flight Seat\n");
 	get_flight_sched(&day, &month, &year, &hour, &minute, source_ap, destination_ap);
 
-	set = format_set(flight_table_params, flight_table_identifiable_param_count, day, month, year, hour, minute, source_ap, destination_ap);
+	SqlParamArray flight_id = param_array_slice(flight_table_parameters, flight_table_identifer_range);
+	SqlValueParamArray flight_value_id = format_param_set(flight_id, day, month, year, hour, minute, source_ap, destination_ap);
 
-	result = sqlite3_check_if_value_exists(data_base, flight_table, set, flight_table_identifiable_param_count, &err_code, &has_row);
+	result = sqlite3_check_if_value_exists(data_base, flight_table, flight_value_id, &err_code, &has_row);
 	exit_on_err(result, err_code);
 
 	printf("   :\n");
@@ -484,7 +463,7 @@ void update_flight_seat(sqlite3* data_base) {
 	else {
 		printf("   :\n");
 
-		result = sqlite3_table_if_not_exists(data_base, seats_table, seats_table_params, seats_table_param_count, &err_code);
+		result = sqlite3_table_if_not_exists(data_base, seats_table, seats_table_parameters, &err_code);
 		exit_on_err(result, err_code);
 
 		long long time_stamp = get_timestamp(day, month, year, hour, minute);
@@ -495,7 +474,7 @@ void update_flight_seat(sqlite3* data_base) {
 		char country_name[50];
 		char passport_number[50];
 
-		SqlValueParameter* identifiable_seat = get_identifiable_flight_seat(time_stamp, source_ap, destination_ap);
+		SqlValueParamArray identifiable_seat = get_identifiable_combined_seat(time_stamp, source_ap, destination_ap);
 		printf("   : Given Name - ");
 		scanf_s("%s", given_name, 50);
 		printf("   : Middle Name - ");
@@ -507,39 +486,32 @@ void update_flight_seat(sqlite3* data_base) {
 		printf("   : Passport No. - ");
 		scanf_s("%s", passport_number, 50);
 
-		result = sqlite3_check_if_value_exists(data_base, seats_table, identifiable_seat, seats_table_identifiable_seat_param_count, &err_code, &has_row);
+		result = sqlite3_check_if_value_exists(data_base, seats_table, identifiable_seat, &err_code, &has_row);
 		exit_on_err(result, err_code);
 
-		SqlParameter* seat_data = &seats_table_params[seats_table_identifiable_seat_param_count];
-		int data_length = seats_table_param_count - seats_table_identifiable_seat_param_count;
-		SqlValueParameter* item_to_set = format_set(seat_data, data_length, given_name, middle_name, family_name, country_name, passport_number);
+		SqlParamArray seats_data = param_array_slice(seats_table_parameters, seats_table_data_range);
+		SqlValueParamArray item_to_set = format_param_set(seats_data, given_name, middle_name, family_name, country_name, passport_number);
 
 		if (has_row) {
-			result = sqlite3_set_value_where(
-				data_base,
-				seats_table,
-				identifiable_seat, seats_table_identifiable_seat_param_count - 0,
-				item_to_set,
-				data_length,
-				&err_code);
+			result = sqlite3_set_value_where(data_base, seats_table, identifiable_seat, item_to_set, &err_code);
 			exit_on_err(result, err_code);
-
-			free_value_set(identifiable_seat, seats_table_identifiable_seat_param_count, true);
-			free_value_set(item_to_set, data_length, true);
 		}
 		else {
-			SqlValueParameter* seat_values = combine_format_set(identifiable_seat, seats_table_identifiable_seat_param_count, item_to_set, data_length);
-			result = sqlite3_insert_value(data_base, seats_table, seat_values, seats_table_param_count, &err_code);
+			SqlValueParamArray seat_values = combine_param_set(identifiable_seat, item_to_set);
+			result = sqlite3_insert_value(data_base, seats_table, seat_values, &err_code);
 			exit_on_err(result, err_code);
 
-			free_value_set(seat_values, seats_table_param_count, true);
+			free_value_set(seat_values);
 		}
+
+		free_value_set(identifiable_seat);
+		free_value_set(item_to_set);
 
 		printf("   :\n");
 		printf("   : Successfully updated the seat.\n");
 	}
 
-	free_value_set(set, flight_table_identifiable_param_count, true);
+	free_value_set(flight_value_id);
 }
 
 void view_flight_schedule(sqlite3* data_base) {
@@ -591,7 +563,7 @@ void view_flight_schedule(sqlite3* data_base) {
 			break;
 		}
 
-		char delay_str[20];
+		char delay_str[20] = { 0 };
 		if (status != DELAYED) {
 			delay_str[0] = '\0';
 		}
@@ -619,10 +591,10 @@ void view_flight_seats(sqlite3* data_base) {
 
 	get_flight_sched(&day, &month, &year, &hour, &minute, source_ap, destination_ap);
 
-	SqlValueParameter* flight_params = format_set(flight_table_params, flight_table_identifiable_param_count, 
-		day, month, year, hour, minute, source_ap, destination_ap);
+	SqlParamArray flight_id = param_array_slice(flight_table_parameters, flight_table_identifer_range);
+	SqlValueParamArray flight_value_id = format_param_set(flight_id, day, month, year, hour, minute, source_ap, destination_ap);
 
-	result = sqlite3_check_if_value_exists(data_base, flight_table, flight_params, flight_table_identifiable_param_count, &err_code, &has_row);
+	result = sqlite3_check_if_value_exists(data_base, flight_table, flight_value_id, &err_code, &has_row);
 	exit_on_err(result, err_code);
 
 	if (!has_row) {
@@ -635,19 +607,16 @@ void view_flight_seats(sqlite3* data_base) {
 		//SELECT columns FROM table_name WHERE conditions ORDER BY columns
 		char* sql_exec_base = "SELECT %s FROM %s WHERE %s ORDER BY %s";
 
-		SqlParameter* selected_columns = &seats_table_params[seats_table_identifiable_flight_param_count];
-		unsigned int selected_columns_length = seats_table_param_count - seats_table_identifiable_flight_param_count;
-		char* selected_columns_str = combine_param_names_v2(selected_columns, selected_columns_length);
+		SqlParamArray selector_columns = param_array_slice(seats_table_parameters, seats_table_seats_id_and_data_range);
+		char* selected_columns_str = combine_param_names_v2(selector_columns);
 
-		SqlParameter* flight_sched_columns = seats_table_params;
-		unsigned int flight_sched_columns_length = seats_table_identifiable_flight_param_count;
-		SqlValueParameter* flight_sched_values = format_set(flight_sched_columns, flight_sched_columns_length, time_stamp, source_ap, destination_ap);
-		char* flight_sched_condition_str = combine_param_comparisons_and(flight_sched_values, flight_sched_columns_length, "=");
-		free_value_set(flight_sched_values, flight_sched_columns_length, true);
+		SqlParamArray where_columns = param_array_slice(seats_table_parameters, seats_table_flight_identifier_range);
+		SqlValueParamArray where_value_columns = format_param_set(where_columns, time_stamp, source_ap, destination_ap);
+		char* flight_sched_condition_str = combine_param_comparisons_and(where_value_columns, "=");
+		free_value_set(where_value_columns, true);
 
-		SqlParameter* seat_pos_columns = &seats_table_params[seats_table_identifiable_flight_param_count];
-		unsigned int seat_pos_columns_length = seats_table_identifiable_seat_param_count - seats_table_identifiable_flight_param_count;
-		char* seat_pos_str = combine_param_names_v2(seat_pos_columns, seat_pos_columns_length);
+		SqlParamArray seat_pos_columns = param_array_slice(seats_table_parameters, seats_table_seats_identifier_range);
+		char* seat_pos_str = combine_param_names_v2(seat_pos_columns);
 
 		char* sql_exec = dynamic_format(sql_exec_base, selected_columns_str, seats_table, flight_sched_condition_str, seat_pos_str);
 
@@ -691,7 +660,7 @@ void view_flight_seats(sqlite3* data_base) {
 		ft_destroy_table(table);
 	}
 
-	free_value_set(flight_params, flight_table_identifiable_param_count, true);
+	free_value_set(flight_value_id);
 }
 
 void get_flight_sched(unsigned int* day, unsigned int* month, unsigned int* year, unsigned int* hour, unsigned int* minute, char* source_ap, char* destination_ap)
@@ -814,17 +783,7 @@ void get_flight_sched(unsigned int* day, unsigned int* month, unsigned int* year
 	}
 }
 
-SqlValueParameter* get_flight_sched_v2() {
-	unsigned int day, month, year, hour, minute;
-	char source_ap[5];
-	char destination_ap[5];
-
-	get_flight_sched(&day, &month, &year, &hour, &minute, source_ap, destination_ap);
-
-	return format_set(flight_table_params, flight_table_identifiable_param_count, day, month, year, hour, minute, source_ap, destination_ap);
-}
-
-SqlValueParameter* get_identifiable_flight_seat(long long time_stamp, char source_ap[5], char destination_ap[5]) {
+SqlValueParamArray get_identifiable_combined_seat(long long time_stamp, char source_ap[5], char destination_ap[5]) {
 	int row;
 	int column;
 
@@ -842,7 +801,8 @@ SqlValueParameter* get_identifiable_flight_seat(long long time_stamp, char sourc
 		empty_stdin();
 	}
 
-	return format_set(seats_table_params, seats_table_identifiable_seat_param_count, time_stamp, source_ap, destination_ap, row, column);
+	SqlParamArray seat_flight_id = param_array_slice(seats_table_parameters, seats_table_combined_identifier_range);
+	return format_param_set(seat_flight_id, time_stamp, source_ap, destination_ap, row, column);
 }
 
 long long get_timestamp(unsigned int day, unsigned int month, unsigned int year, unsigned int hour, unsigned int minute) {
