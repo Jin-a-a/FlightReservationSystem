@@ -1,9 +1,6 @@
-#include <stdio.h>
 #include <string.h>
 #include <malloc.h>
 #include <stdarg.h>
-#include <stdlib.h>
-#include <ctype.h>
 #include <stdbool.h>
 
 //#define def_buffer 100
