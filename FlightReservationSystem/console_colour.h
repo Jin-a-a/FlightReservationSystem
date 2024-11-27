@@ -53,8 +53,9 @@
 #define TEXTHIGHLIGHT_EVENWHITER 107
 
 void reset_rich_format();
-void _vbegin_rich_printing(int arg_count, int* arr);
+//Use begin_rich_printing instead.
 void vbegin_rich_printing(int arg_count, ...);
+//Use printf_rich instead.
 void vprintf_rich(int arg_count, char* str, ...);
 
 #define VA_NARGS2(...) ((int)(sizeof((int[]){ __VA_ARGS__ })/sizeof(int)))

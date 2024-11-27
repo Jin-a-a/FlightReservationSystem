@@ -237,6 +237,7 @@ void add_flight_sched(sqlite3* data_base) {
 	exit_on_err(result, err_code);
 
 	printf("Adding Flight Sched\n");
+	printf("   : Input flight schedule to add.\n");
 	get_flight_sched(&day, &month, &year, &hour, &minute, source_ap, destination_ap);
 	
 	set = format_param_set(flight_table_parameters, day, month, year, hour, minute, source_ap, destination_ap, 0, ONSCHED);
@@ -277,6 +278,7 @@ void delete_flight_sched(sqlite3* data_base) {
 	exit_on_err(result, err_code);
 
 	printf("Deleting Flight Sched\n");
+	printf("   : Input flight schedule to delete.\n");
 	get_flight_sched(&day, &month, &year, &hour, &minute, source_ap, destination_ap);
 
 	SqlParamArray flight_sched_identifers = param_array_slice(flight_table_parameters, flight_table_identifer_range);
@@ -324,6 +326,7 @@ void delay_flight_schedule(sqlite3* data_base) {
 	exit_on_err(result, err_code);
 
 	printf("Delaying Flight Sched\n");
+	printf("   : Input flight schedule to delay.\n");
 	get_flight_sched(&day, &month, &year, &hour, &minute, source_ap, destination_ap);
 
 	SqlParamArray flight_id = param_array_slice(flight_table_parameters, flight_table_identifer_range);
@@ -379,6 +382,7 @@ void cancel_flight_sched(sqlite3* data_base) {
 	exit_on_err(result, err_code);
 
 	printf("Cancelling Flight Sched\n");
+	printf("   : Input flight schedule to cancel.\n");
 	get_flight_sched(&day, &month, &year, &hour, &minute, source_ap, destination_ap);
 
 	SqlParamArray flight_id = param_array_slice(flight_table_parameters, flight_table_identifer_range);
@@ -428,7 +432,8 @@ void normalize_flight_schedule(sqlite3* data_base) {
 	result = sqlite3_table_if_not_exists(data_base, flight_table, flight_table_parameters, &err_code);
 	exit_on_err(result, err_code);
 
-	printf("Continuing Flight as Scheduled\n");
+	printf("Reset Flight Schedule\n");
+	printf("   : Input flight schedule to resets.\n");
 	get_flight_sched(&day, &month, &year, &hour, &minute, source_ap, destination_ap);
 
 	SqlParamArray flight_id = param_array_slice(flight_table_parameters, flight_table_identifer_range);
@@ -480,6 +485,7 @@ void update_flight_seat(sqlite3* data_base) {
 	exit_on_err(result, err_code);
 
 	printf("Updating Flight Seat\n");
+	printf("   : Input flight schedule to update the seat on.\n");
 	get_flight_sched(&day, &month, &year, &hour, &minute, source_ap, destination_ap);
 
 	SqlParamArray flight_id = param_array_slice(flight_table_parameters, flight_table_identifer_range);
@@ -511,7 +517,7 @@ void update_flight_seat(sqlite3* data_base) {
 		unsigned int row;
 		unsigned int column;
 
-		printf("   : Get Seat Position\n");
+		printf("   : Seat position.\n");
 		SqlValueParamArray identifiable_seat = get_identifiable_combined_seat(time_stamp, source_ap, destination_ap, &row, &column);
 
 		printf("   :\n");
@@ -584,6 +590,7 @@ void remove_flight_seat(sqlite3* data_base) {
 	exit_on_err(result, err_code);
 
 	printf("Remove Flight Seat\n");
+	printf("   : Input flight schedule to reset the seat on.\n");
 	get_flight_sched(&day, &month, &year, &hour, &minute, source_ap, destination_ap);
 
 	SqlParamArray flight_id = param_array_slice(flight_table_parameters, flight_table_identifer_range);
@@ -604,6 +611,7 @@ void remove_flight_seat(sqlite3* data_base) {
 		result = sqlite3_table_if_not_exists(data_base, seats_table, seats_table_parameters, &err_code);
 		exit_on_err(result, err_code);
 
+		printf("   : Seat position.\n");
 		long long time_stamp = get_timestamp(day, month, year, hour, minute);
 		unsigned int row;
 		unsigned int column;
@@ -635,6 +643,7 @@ void clear_flight_seats(sqlite3* data_base) {
 	exit_on_err(result, err_code);
 
 	printf("Clear Flight Seat\n");
+	printf("   : Input flight schedule to clear the seat on.\n");
 	get_flight_sched(&day, &month, &year, &hour, &minute, source_ap, destination_ap);
 
 	SqlParamArray flight_id = param_array_slice(flight_table_parameters, flight_table_identifer_range);
@@ -760,6 +769,7 @@ void view_flight_seats(sqlite3* data_base) {
 
 	printf("Viewing Flight Seats\n");
 
+	printf("   : Input flight schedule to view the seat on.\n");
 	get_flight_sched(&day, &month, &year, &hour, &minute, source_ap, destination_ap);
 
 	SqlParamArray flight_id = param_array_slice(flight_table_parameters, flight_table_identifer_range);

@@ -3,6 +3,8 @@
 #include <malloc.h>
 #include "StringHelper.h"
 
+void reset_rich_format();
+
 static void copy_args(int* buffer, int count, va_list args) {
 	for (int i = 0; i < count; i++) {
 		int value = va_arg(args, int);
@@ -10,11 +12,7 @@ static void copy_args(int* buffer, int count, va_list args) {
 	}
 }
 
-void reset_rich_format() {
-	printf("\033[0m");
-}
-
-void _vbegin_rich_printing(int arg_count, int* arr) {
+static void _vbegin_rich_printing(int arg_count, int* arr) {
 	char temp[30];
 	unsigned int capacity = 100;
 	char* text_form = (char*)malloc(sizeof(char) * capacity);
@@ -75,4 +73,8 @@ void vprintf_rich(int arg_count, char* str, ...) {
 	printf(str);
 
 	reset_rich_format();
+}
+
+void reset_rich_format() {
+	printf("\033[0m");
 }
