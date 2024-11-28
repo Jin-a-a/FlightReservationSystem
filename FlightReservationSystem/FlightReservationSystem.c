@@ -357,14 +357,14 @@ void delay_flight_schedule(sqlite3* data_base) {
 		result = sqlite3_set_value_where(data_base, flight_table, flight_value_id, flight_value_data, &err_code);
 		exit_on_err(result, err_code);
 
-		free_value_set(flight_value_data);
-
 		printf("   : Delayed the flight by ");
 		begin_rich_printing(TEXTCOLOR_GOLD);
 		printf("%d", delay);
 		reset_rich_format();
 		printf(" minutes\n.");
 		print_flight_at(day, month, year, hour, minute, source_ap, destination_ap);
+
+		free_value_set(flight_value_data);
 	}
 
 	free_value_set(flight_value_id);
@@ -514,6 +514,8 @@ void update_flight_seat(sqlite3* data_base) {
 		char country_name[50];
 		char passport_number[50];
 
+		middle_name[49] = '\n';
+
 		unsigned int row;
 		unsigned int column;
 
@@ -566,13 +568,20 @@ void update_flight_seat(sqlite3* data_base) {
 			free_value_set(seat_values);
 		}
 
-		free_value_set(identifiable_seat);
-		free_value_set(item_to_set);
-
 		printf("   :\n");
 		printf("   : Successfully updated the seat.\n");
+		printf("   : With name '");
+		begin_rich_printing(TEXTCOLOR_GOLD);
+		if (strlen(middle_name) > 0) printf("%s %s %s", given_name, middle_name, family_name);
+		else printf("%s %s", given_name, family_name);
+		reset_rich_format();
+		printf("'.\n");
+
 		print_flight_at(day, month, year, hour, minute, source_ap, destination_ap);
 		print_seats_at(row, column);
+
+		free_value_set(identifiable_seat);
+		free_value_set(item_to_set);
 	}
 
 	free_value_set(flight_value_id);
@@ -778,8 +787,11 @@ void view_flight_seats(sqlite3* data_base) {
 	result = sqlite3_check_if_value_exists(data_base, flight_table, flight_value_id, &err_code, &has_row);
 	exit_on_err(result, err_code);
 
+	printf("   :\n");
+
 	if (!has_row) {
-		printf("   : This flight record does not exist. (%u/%u/%u, %u:%u  %s ~> %s)\n", day, month, year, hour, minute, source_ap, destination_ap);
+		printf("   : This flight record does not exist.\n");
+		print_flight_at(day, month, year, hour, minute, source_ap, destination_ap);
 	}
 	else {
 		long long time_stamp = get_timestamp(day, month, year, hour, minute);
