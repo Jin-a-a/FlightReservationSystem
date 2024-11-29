@@ -57,7 +57,14 @@ void reset_rich_format();
 void vbegin_rich_printing(int arg_count, ...);
 //Use printf_rich instead.
 void vprintf_rich(int arg_count, char* str, ...);
+//Use write_rich_format.
+errno_t vwrite_rich_format(int arg_count, char* write_to, size_t size, ...);
+//Use dynamic_write_rich_format. Requires you to free the char pointer afterwards.
+char* vdynamic_write_rich_format(int arg_count, ...);
 
 #define VA_NARGS2(...) ((int)(sizeof((int[]){ __VA_ARGS__ })/sizeof(int)))
-#define begin_rich_printing(...) vbegin_rich_printing(VA_NARGS2(__VA_ARGS__), __VA_ARGS__)
-#define printf_rich(str, ...) vprintf_rich(VA_NARGS2(__VA_ARGS__), str, __VA_ARGS__)
+
+#define begin_rich_printing(...) vbegin_rich_printing(VA_NARGS2(__VA_ARGS__), __VA_ARGS__);
+#define printf_rich(str, ...) vprintf_rich(VA_NARGS2(__VA_ARGS__), str, __VA_ARGS__);
+#define write_rich_format(write_to, size, ...) vwrite_rich_format(VA_NARGS2(__VA_ARGS__), write_to, size, __VA_ARGS__);
+#define dynamic_write_rich_format(...) vdynamic_write_rich_format(VA_NARGS2(__VA_ARGS__), __VA_ARGS__);

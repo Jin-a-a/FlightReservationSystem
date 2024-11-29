@@ -9,8 +9,6 @@
 #include "Sqlite3Helper.h"
 #include "StringHelper.h"
 
-#define VA_NARGS2(...) ((int)(sizeof((int[]){ __VA_ARGS__ })/sizeof(int)))
-#define CHECK_TYPE(type,var) { typedef void (*type_t)(type); type_t tmp = (type_t)0; if(0) tmp(var);}
 #define def_buffer 100
 
 static int callback(void* count, int argc, char** argv, char** azColName) {
