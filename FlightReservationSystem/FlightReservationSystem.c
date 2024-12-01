@@ -141,15 +141,22 @@ static void exit_on_err(int result, char* err_code) {
 
 int main()
 {
-	delay_ms(1000);
 	srand(time(NULL));
-	int r = rand();
-	r = r * r * r * r * r * r * r * r * r * r * r;
+	int sr = rand();
+	unsigned int r = *(unsigned int*)(&sr);
+	unsigned int uint_max = UINT_MAX;
+	unsigned int uint_max_o_3 = uint_max / 3;
+	r = r * uint_max_o_3 + 293 * uint_max_o_3;
+	r = r * r * r * r * r * r * r * r * r * r * r + 11 * 29;
 	r /= 11;
-	float rf = (float)r / (float)RAND_MAX;
-	if (rf < 0.33f) slugcat_flip();
-	else if (rf < 0.66f) slugcat_vibin(0);
-	else slugcat_vibin(0.5f);
+	r -= 7 * 113;
+	r = r * uint_max_o_3 + 293 * (uint_max_o_3 / 5);
+	r = r * r * r;
+
+	delay_ms(1000);
+	if (r < uint_max_o_3) slugcat_flip();
+	else if (r < (uint_max_o_3 * 2)) slugcat_vibin(0);
+	else slugcat_vibin(0.33f);
 
 	print_header_stuff();
 
