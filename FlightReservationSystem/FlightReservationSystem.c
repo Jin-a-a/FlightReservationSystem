@@ -129,12 +129,13 @@ void print_seats_at(unsigned int row, unsigned int column);
 static void exit_on_err(int result, char* err_code) {
 	if (result != SQLITE_OK) {
 		if (err_code == NULL) {
-			printf("   : Error message\n");
+			printf("   : Error\n");
 		}
 		else {
 			printf("   : Error message - %s\n", err_code);
 		}
 		free(err_code);
+		(void)getchar();
 		exit(-1);
 	}
 }
@@ -711,6 +712,11 @@ void view_flight_schedule(sqlite3* data_base) {
 	char stuff[80];
 	int buffer_size = sizeof(char) * 80;
 	int half_buffer_size = buffer_size / 2;
+	int result;
+	char* err_code;
+
+	result = sqlite3_table_if_not_exists(data_base, flight_table, flight_table_parameters, &err_code);
+	exit_on_err(result, err_code);
 
 	const SqlParamArray date_time_ordered = {
 		.arr = (SqlParameter[5]) { 
@@ -734,7 +740,7 @@ void view_flight_schedule(sqlite3* data_base) {
 	ft_set_cell_prop(table, 0, FT_ANY_COLUMN, FT_CPROP_ROW_TYPE, FT_ROW_HEADER);
 	ft_write_ln(table, "Date", "Time", "Source Airport Code", "Destination Airport Code", "Delay Minutes", "Status");
 
-	int result = sqlite3_prepare_v2(data_base, exec_sql, -1, &statement, NULL);
+	result = sqlite3_prepare_v2(data_base, exec_sql, -1, &statement, NULL);
 	exit_on_err(result, NULL);
 
 	free(order_by_str);
@@ -795,6 +801,9 @@ void view_flight_seats(sqlite3* data_base) {
 	int result;
 	bool has_row;
 
+	result = sqlite3_table_if_not_exists(data_base, flight_table, flight_table_parameters, &err_code);
+	exit_on_err(result, err_code);
+
 	printf("Viewing Flight Seats\n");
 
 	printf("   : Input flight schedule to view the seat on.\n");
@@ -813,6 +822,9 @@ void view_flight_seats(sqlite3* data_base) {
 		print_flight_at(day, month, year, hour, minute, source_ap, destination_ap);
 	}
 	else {
+		result = sqlite3_table_if_not_exists(data_base, seats_table, seats_table_parameters, &err_code);
+		exit_on_err(result, err_code);
+
 		long long time_stamp = get_timestamp(day, month, year, hour, minute);
 
 		sqlite3_stmt* statement;
