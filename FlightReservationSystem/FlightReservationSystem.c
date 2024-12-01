@@ -732,7 +732,7 @@ void view_flight_schedule(sqlite3* data_base) {
 	ft_table_t* table = ft_create_table();
 	ft_set_border_style(table, FT_SIMPLE_STYLE);
 	ft_set_cell_prop(table, 0, FT_ANY_COLUMN, FT_CPROP_ROW_TYPE, FT_ROW_HEADER);
-	ft_write_ln(table, "Date", "Time", "Source Airport Code", "Destination Airport Code", "Delay Time", "Status");
+	ft_write_ln(table, "Date", "Time", "Source Airport Code", "Destination Airport Code", "Delay Minutes", "Status");
 
 	int result = sqlite3_prepare_v2(data_base, exec_sql, -1, &statement, NULL);
 	exit_on_err(result, NULL);
@@ -754,7 +754,7 @@ void view_flight_schedule(sqlite3* data_base) {
 		char* date = stuff;
 		sprintf_s(date, half_buffer_size, "%d/%d/%d", day, month, year);
 		char* time = &stuff[half_buffer_size];
-		sprintf_s(time, half_buffer_size, "%d:%d", hour, minute);
+		sprintf_s(time, half_buffer_size, "%02d:%02d", hour, minute);
 		char* status_str;
 		switch (status) {
 		case ONSCHED:
@@ -776,7 +776,7 @@ void view_flight_schedule(sqlite3* data_base) {
 			delay_str[0] = '\0';
 		}
 		else {
-			sprintf_s(delay_str, sizeof(char) * 20, "%d minutes", delay);
+			sprintf_s(delay_str, sizeof(char) * 20, "%d", delay);
 		}
 
 		ft_write_ln(table, date, time, source_ap, destin_ap, delay_str, status_str);
