@@ -138,6 +138,7 @@
     <ClCompile Include="..\..\..\C Libs\SQLite\sqlite3\sqlite3.c" />
     <ClCompile Include="console_colour.c" />
     <ClCompile Include="FlightReservationSystem.c" />
+    <ClCompile Include="slugcat_anim.c" />
     <ClCompile Include="Sqlite3Helper.c" />
     <ClCompile Include="StringHelper.c" />
   </ItemGroup>
@@ -146,6 +147,7 @@
     <ClInclude Include="..\..\..\C Libs\SQLite\sqlite3\sqlite3.h" />
     <ClInclude Include="..\..\..\C Libs\SQLite\sqlite3\sqlite3ext.h" />
     <ClInclude Include="console_colour.h" />
+    <ClInclude Include="slugcat_anim.h" />
     <ClInclude Include="Sqlite3Helper.h" />
     <ClInclude Include="StringHelper.h" />
   </ItemGroup>

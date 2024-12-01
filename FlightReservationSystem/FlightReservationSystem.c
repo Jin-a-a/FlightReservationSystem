@@ -1,10 +1,12 @@
-#include <stdio.h>
+﻿#include <stdio.h>
+#include <time.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <malloc.h>
 #include <string.h>
 #include <stdbool.h>
 #include <conio.h>
+#include "slugcat_anim.h"
 #include "console_colour.h"
 #include "Sqlite3Helper.h"
 #include "StringHelper.h"
@@ -139,6 +141,16 @@ static void exit_on_err(int result, char* err_code) {
 
 int main()
 {
+	delay_ms(1000);
+	srand(time(NULL));
+	int r = rand();
+	r = r * r * r * r * r * r * r * r * r * r * r;
+	r /= 11;
+	float rf = (float)r / (float)RAND_MAX;
+	if (rf < 0.33f) slugcat_flip();
+	else if (rf < 0.66f) slugcat_vibin(0);
+	else slugcat_vibin(0.5f);
+
 	print_header_stuff();
 
 	sqlite3* data_base;

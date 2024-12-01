@@ -36,6 +36,9 @@
     <ClCompile Include="console_colour.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="slugcat_anim.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Sqlite3Helper.h">
@@ -54,6 +57,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="console_colour.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="slugcat_anim.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
